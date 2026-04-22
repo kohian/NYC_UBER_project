@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 import joblib
+from dataclasses import asdict, is_dataclass
+from typing import Any
+
+import gcsfs
 import numpy as np
 import pandas as pd
-import gcsfs
 import torch
-
 
 def save_torch_state_dict_to_gcs(
     state_dict: dict,
@@ -75,6 +77,38 @@ def load_scaler_from_gcs(path: str):
     with fs.open(path, "rb") as f:
         return joblib.load(f)
 
+def save_json_to_gcs(data: dict, base_path: str, filename: str) -> str:
+    """
+    Save a JSON-serializable dict to GCS.
+    """
+    fs = gcsfs.GCSFileSystem()
+    path = f"{base_path.rstrip('/')}/{filename}"
+
+    with fs.open(path, "w") as f:
+        json.dump(data, f, indent=2)
+
+    print(f"Saved {filename} to {path}")
+    return path
+
+
+def save_config_to_gcs(config: Any, base_path: str, filename: str) -> str:
+    """
+    Save a config object to GCS.
+
+    Supports:
+    - dataclass instances
+    - plain dict
+    """
+    if is_dataclass(config):
+        data = asdict(config)
+    elif isinstance(config, dict):
+        data = config
+    else:
+        raise TypeError("config must be a dataclass instance or dict")
+
+    return save_json_to_gcs(data, base_path, filename)
+
+
 
 def build_top_bottom_df(results: dict) -> pd.DataFrame:
     """
@@ -119,8 +153,8 @@ def save_results_to_gcs(
     if metadata is not None:
         summary.update(metadata)
 
-    with fs.open(f"{base_path}/summary.json", "w") as f:
-        json.dump(summary, f, indent=2)
+    #use helper
+    save_json_to_gcs(summary, base_path, "summary.json")
 
     with fs.open(f"{base_path}/per_zone.csv", "w") as f:
         results["per_zone_df"].to_csv(f, index=False)

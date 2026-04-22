@@ -2,6 +2,8 @@ import torch
 from torch.utils.data import DataLoader
 from datetime import datetime
 
+from dataclasses import asdict
+
 from nyc_forecasting.core.config import DataConfig, LSTMConfig
 from nyc_forecasting.core.torch_dataset import SequenceDataset
 from nyc_forecasting.core.data import (
@@ -21,6 +23,7 @@ from nyc_forecasting.core.metrics import (
     print_metric_summary,
 )
 from nyc_forecasting.core.artifacts import (
+    save_config_to_gcs,
     save_results_to_gcs,
     save_scaler_to_gcs,
     save_torch_state_dict_to_gcs,
@@ -159,7 +162,7 @@ def main() -> None:
     # - model loaded with best validation weights
     # - training history
     # - best_state_dict for saving
-    model, history, best_state_dict = fit_lstm(
+    model, _history, best_state_dict = fit_lstm(
         model=model,
         train_loader=train_loader,
         val_loader=val_loader,
@@ -183,6 +186,24 @@ def main() -> None:
         base_path,
     )
 
+    model_config = asdict(model_cfg)
+
+    model_config.update({
+        "input_size": input_size,
+        "num_targets": num_targets,
+        "device_used": device,
+    })
+
+    run_config = {
+        "model_config": model_config,
+        "data_config": asdict(data_cfg),
+    }
+
+    save_config_to_gcs(
+        run_config,
+        base_path,
+        "run_config.json"
+    )
     # -----------------------------
     # 13. Evaluate on scaled test loader
     # -----------------------------
@@ -224,6 +245,10 @@ def main() -> None:
     save_results_to_gcs(
         results,
         base_path=base_path,
+        metadata={
+            "test_loss_scaled": float(test_loss),
+            "run_id": run_id,
+    },
     )
 
 
