@@ -1,0 +1,30 @@
+#tells pip how to build/install your project
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nyc_forecasting"
+version = "0.1.0"
+description = "nyc uber demand forecasting model training"
+requires-python = ">=3.11"
+
+# declare your runtime dependencies here
+dependencies = [
+    "gcsfs",
+    "joblib",
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "scikit-learn",
+    "torch",
+]
+
+# tells setuptools your package code lives under src/
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+# tells setuptools to find packages inside src/
+[tool.setuptools.packages.find]
+where = ["src"]
+
