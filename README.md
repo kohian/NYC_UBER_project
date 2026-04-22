@@ -1,45 +1,129 @@
-# NYC Forecasting Modular Refactor
+# NYC Uber Demand Forecasting
 
-This refactor splits the original notebook-exported script into shared modules so you can:
-- reuse the same data prep for LSTM, XGBoost, and other models
-- keep evaluation logic in one place
-- keep model-specific code small
+This project builds an end-to-end machine learning pipeline to forecast hourly ride demand across NYC taxi zones using historical Uber trip data.
 
-## Structure
+The focus is not just on modeling, but on building a clean, reproducible ML pipeline with proper data processing, training, evaluation, and artifact tracking.
 
-- `nyc_forecasting/config/settings.py` — central configs
-- `nyc_forecasting/data/` — file loading, panel building, splitting, scaling, datasets
-- `nyc_forecasting/features/calendar.py` — shared calendar feature engineering
-- `nyc_forecasting/models/lstm.py` — LSTM model definition
-- `nyc_forecasting/training/lstm_train.py` — train/eval/predict loop for PyTorch
-- `nyc_forecasting/metrics/regression.py` — MAE/RMSE/MAPE evaluation
-- `train_lstm.py` — end-to-end LSTM entry point
-- `train_xgboost.py` — end-to-end XGBoost starter entry point
+## What this project does
 
-## Why this split works
+- Processes raw NYC Uber trip data into hourly demand per zone  
+- Builds a time-series dataset with calendar-based features  
+- Trains an LSTM model to predict next-step demand  
+- Evaluates predictions using MAE, RMSE, and MAPE  
+- Saves all artifacts (model, scaler, config, metrics) to GCS  
 
-The original script mixes together:
-- environment setup
-- data loading
-- feature engineering
-- sequence creation
-- model code
-- training
-- evaluation
+## Pipeline Overview
 
-That is fine in a notebook, but painful once you want fair model comparisons.
+1. Data Processing  
+   - Load monthly parquet files  
+   - Filter relevant zones (e.g. Manhattan)  
+   - Aggregate to hourly demand  
+   - Build a full time × zone panel  
 
-This refactor keeps these shared steps common across models:
-1. select parquet files
-2. load combined data
-3. build full hour-zone panel
-4. split train/val/test by time
-5. fit scaler on train only
-6. add shared calendar features
-7. generate model-specific training arrays
+2. Train / Validation / Test Split  
+   - Split by time ranges (monthly boundaries)  
 
-## Important notes
+3. Feature Engineering  
+   - Calendar features (hour, day, weekend, holidays)  
+   - Standard scaling (fit on train only)  
 
-- The XGBoost script is a solid starter, not a finished model-selection pipeline.
-- In Colab, save checkpoints locally first, then copy to Drive if needed.
-- Evaluation uses raw test targets directly (`test_wide[input_len:]`) rather than inverse-transforming scaled targets again.
+4. Dataset Construction  
+   - Sliding window sequences for time-series learning  
+
+5. Model Training  
+   - LSTM model (PyTorch)  
+   - Validation-based model selection  
+
+6. Evaluation  
+   - Predictions converted back to raw demand  
+   - Metrics computed per zone and overall  
+
+7. Artifact Saving (GCS)  
+   - Model weights  
+   - Scaler  
+   - Config (data + model)  
+   - Metrics + predictions  
+
+## Project Structure
+
+src/nyc_forecasting/
+    core/
+        data.py          # data loading, panel building, splitting
+        features.py      # scaling + time features
+        torch_dataset.py # sequence dataset
+        lstm_class.py    # model definition
+        lstm_functions.py# train/eval/predict
+        metrics.py       # evaluation logic
+        artifacts.py     # saving to GCS
+
+train_lstm.py           # end-to-end training pipeline
+run_preprocessing.py    # raw → processed data pipeline
+
+## Model
+
+- LSTM (PyTorch)  
+- Input: past input_len hours of features  
+- Output: next-step demand for all zones  
+
+## Saved Artifacts
+
+Each training run is versioned:
+
+gs://<bucket>/models/<run_id>/
+    best_model.pt
+    scaler.joblib
+    run_config.json
+    summary.json
+    per_zone.csv
+    top_bottom.csv
+    predictions.npz
+
+## Configuration
+
+Configuration is defined via dataclasses:
+
+- DataConfig: data paths, splits, preprocessing  
+- LSTMConfig: model and training parameters  
+
+A combined run_config.json is saved for reproducibility.
+
+## How to run
+
+1. Setup environment
+
+pip install -e .
+
+(Install CUDA-enabled PyTorch separately if using GPU)
+
+2. Run preprocessing
+
+python -m nyc_forecasting.run_preprocessing
+
+3. Train model
+
+python -m nyc_forecasting.train_lstm
+
+## Metrics
+
+- MAE (Mean Absolute Error)  
+- RMSE (Root Mean Squared Error)  
+- MAPE (Mean Absolute Percentage Error)  
+
+Metrics are computed on raw demand values, not scaled data.
+
+## Project Goal
+
+This project demonstrates:
+
+- End-to-end ML pipeline design  
+- Clean modular code structure  
+- Proper handling of time-series data  
+- Reproducible experiments with saved artifacts  
+- Practical MLOps patterns (GCS storage, versioned runs)  
+
+## Future Improvements
+
+- Add XGBoost or tree-based baseline  
+- Add experiment tracking (MLflow or Weights & Biases)  
+- Add model monitoring (data drift, prediction drift)  
+- Deploy inference API (FastAPI or Cloud Run)
