@@ -93,8 +93,6 @@ def calculate_regression_metrics(
         "targets_raw": targets_raw,
     }
 
-
-
 def print_metric_summary(results: dict, mape_mode: str | None = None) -> None:
     print("=" * 50)
     print(f"Overall MAE  : {results['overall_mae']:.4f}")
@@ -127,63 +125,63 @@ def print_metric_summary(results: dict, mape_mode: str | None = None) -> None:
 
 
 
-def save_results_to_gcs(
-    results: dict,
-    base_path: str,
-) -> None:
-    """
-    Save model evaluation results to GCS.
+# def save_results_to_gcs(
+#     results: dict,
+#     base_path: str,
+# ) -> None:
+#     """
+#     Save model evaluation results to GCS.
 
-    Files created:
-    - summary.json
-    - per_zone.csv
-    - top_bottom.csv
-    - predictions.npz
-    """
+#     Files created:
+#     - summary.json
+#     - per_zone.csv
+#     - top_bottom.csv
+#     - predictions.npz
+#     """
 
-    fs = gcsfs.GCSFileSystem()
+#     fs = gcsfs.GCSFileSystem()
 
-    # -----------------------------
-    # 1. Summary JSON
-    # -----------------------------
-    summary = {
-        "overall_mae": float(results["overall_mae"]),
-        "overall_rmse": float(results["overall_rmse"]),
-        "overall_mape": float(results["overall_mape"]),
-    }
+#     # -----------------------------
+#     # 1. Summary JSON
+#     # -----------------------------
+#     summary = {
+#         "overall_mae": float(results["overall_mae"]),
+#         "overall_rmse": float(results["overall_rmse"]),
+#         "overall_mape": float(results["overall_mape"]),
+#     }
 
-    with fs.open(f"{base_path}/summary.json", "w") as f:
-        json.dump(summary, f, indent=2)
+#     with fs.open(f"{base_path}/summary.json", "w") as f:
+#         json.dump(summary, f, indent=2)
 
-    # -----------------------------
-    # 2. Per-zone CSV
-    # -----------------------------
-    with fs.open(f"{base_path}/per_zone.csv", "w") as f:
-        results["per_zone_df"].to_csv(f, index=False)
+#     # -----------------------------
+#     # 2. Per-zone CSV
+#     # -----------------------------
+#     with fs.open(f"{base_path}/per_zone.csv", "w") as f:
+#         results["per_zone_df"].to_csv(f, index=False)
 
-    # -----------------------------
-    # 3. Top/bottom CSV
-    # -----------------------------
-    top_bottom_df = pd.concat([
-        results["worst_5_rmse"].assign(label="worst_rmse"),
-        results["best_5_rmse"].assign(label="best_rmse"),
-        results["worst_5_mae"].assign(label="worst_mae"),
-        results["best_5_mae"].assign(label="best_mae"),
-        results["worst_5_mape"].assign(label="worst_mape"),
-        results["best_5_mape"].assign(label="best_mape"),
-    ], ignore_index=True)
+#     # -----------------------------
+#     # 3. Top/bottom CSV
+#     # -----------------------------
+#     top_bottom_df = pd.concat([
+#         results["worst_5_rmse"].assign(label="worst_rmse"),
+#         results["best_5_rmse"].assign(label="best_rmse"),
+#         results["worst_5_mae"].assign(label="worst_mae"),
+#         results["best_5_mae"].assign(label="best_mae"),
+#         results["worst_5_mape"].assign(label="worst_mape"),
+#         results["best_5_mape"].assign(label="best_mape"),
+#     ], ignore_index=True)
 
-    with fs.open(f"{base_path}/top_bottom.csv", "w") as f:
-        top_bottom_df.to_csv(f, index=False)
+#     with fs.open(f"{base_path}/top_bottom.csv", "w") as f:
+#         top_bottom_df.to_csv(f, index=False)
 
-    # -----------------------------
-    # 4. Predictions (npz)
-    # -----------------------------
-    with fs.open(f"{base_path}/predictions.npz", "wb") as f:
-        np.savez(
-            f,
-            preds=results["preds_raw"],
-            targets=results["targets_raw"],
-        )
+#     # -----------------------------
+#     # 4. Predictions (npz)
+#     # -----------------------------
+#     with fs.open(f"{base_path}/predictions.npz", "wb") as f:
+#         np.savez(
+#             f,
+#             preds=results["preds_raw"],
+#             targets=results["targets_raw"],
+#         )
 
-    print(f"Results saved to: {base_path}")
+#     print(f"Results saved to: {base_path}")

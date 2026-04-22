@@ -108,4 +108,3 @@ def transform_wide_frame(wide_df: pd.DataFrame, scaler: StandardScaler) -> pd.Da
         index=wide_df.index,
         columns=wide_df.columns,
     )
-
