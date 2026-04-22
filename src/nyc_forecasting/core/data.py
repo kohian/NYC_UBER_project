@@ -216,7 +216,7 @@ def make_full_panel(df: pd.DataFrame) -> pd.DataFrame:
     all_hours = pd.date_range(
         start=df["hour"].min(),
         end=df["hour"].max(),
-        freq="H",
+        freq="h",
     )
     all_zones = np.sort(df["PULocationID"].unique())
 

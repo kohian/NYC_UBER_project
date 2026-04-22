@@ -1,0 +1,28 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+.venv/
+
+# Git
+.git
+.gitignore
+.github/
+
+# Development tools
+.vscode/
+
+# Local outputs
+reports/
+# model_artifacts/
+
+# Documentation
+README.md
+
+# Python packaging
+*.egg-info/
+.eggs/
+build/
+dist/
