@@ -156,12 +156,22 @@ def save_results_to_gcs(
     #use helper
     save_json_to_gcs(summary, base_path, "summary.json")
 
-    with fs.open(f"{base_path}/per_zone.csv", "w") as f:
-        results["per_zone_df"].to_csv(f, index=False)
+    # with fs.open(f"{base_path}/per_zone.csv", "w") as f:
+    #     results["per_zone_df"].to_csv(f, index=False)
+
+    # with fs.open(f"{base_path}/top_bottom.csv", "w") as f:
+    #     top_bottom_df.to_csv(f, index=False)
+
+    results["per_zone_df"].to_csv(
+        f"{base_path}/per_zone.csv",
+        index=False
+    )    
 
     top_bottom_df = build_top_bottom_df(results)
-    with fs.open(f"{base_path}/top_bottom.csv", "w") as f:
-        top_bottom_df.to_csv(f, index=False)
+    top_bottom_df.to_csv(
+        f"{base_path}/top_bottom.csv",
+        index=False
+    )    
 
     with fs.open(f"{base_path}/predictions.npz", "wb") as f:
         np.savez(
