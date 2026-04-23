@@ -12,29 +12,35 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cpu \
+    torch==2.11.0
+
 COPY pyproject.toml .
 COPY src/ ./src/
 
 RUN pip install --no-cache-dir --no-deps .
 
-# -------- Test stage --------
-FROM base AS test
-COPY requirements_dev.txt .
-RUN pip install --no-cache-dir -r requirements_dev.txt
-COPY tests/ ./tests/
-COPY model_artifacts/ ./model_artifacts
+# # -------- Production stage --------
+# FROM base AS prod
 
 RUN chown -R appuser:appuser /app
 
 USER appuser
 
-CMD ["pytest"]
+CMD ["python", "-m", "nyc_forecasting.train_lstm"]
 
-# -------- Production stage --------
-FROM base AS prod
+# # -------- Test stage --------
+# FROM base AS test
+# COPY requirements_dev.txt .
+# RUN pip install --no-cache-dir -r requirements_dev.txt
+# COPY tests/ ./tests/
 
-RUN chown -R appuser:appuser /app
+# RUN chown -R appuser:appuser /app
 
-USER appuser
+# USER appuser
 
-CMD ["uvicorn", "iris_inference_api.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# CMD ["pytest"]
+
+# LOCAL RUNNING
+# docker run --rm -v "$env:APPDATA\gcloud:/home/appuser/.config/gcloud:ro" -e GOOGLE_APPLICATION_CREDENTIALS=/home/appuser/.config/gcloud/application_default_credentials.json nyc_uber_demand
