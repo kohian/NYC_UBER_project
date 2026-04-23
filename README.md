@@ -127,3 +127,4 @@ This project demonstrates:
 - Add experiment tracking (MLflow or Weights & Biases)  
 - Add model monitoring (data drift, prediction drift)  
 - Deploy inference API (FastAPI or Cloud Run)
+- Dashboard and Simulation 
