@@ -50,23 +50,33 @@ def load_torch_state_dict_from_gcs(path: str, map_location: str | None = None) -
     with fs.open(path, "rb") as f:
         return torch.load(f, map_location=map_location)
 
-
-def save_scaler_to_gcs(
-    scaler,
-    base_path: str,
-    filename: str = "scaler.joblib",
-) -> str:
-    """
-    Save a fitted scaler to GCS.
-    """
+def save_joblib_object_to_gcs(obj, base_path: str, filename: str) -> str:
     fs = gcsfs.GCSFileSystem()
     path = f"{base_path.rstrip('/')}/{filename}"
 
     with fs.open(path, "wb") as f:
-        joblib.dump(scaler, f)
+        joblib.dump(obj, f)
 
-    print(f"Saved scaler to {path}")
+    print(f"Saved object to {path}")
     return path
+
+
+# def save_scaler_to_gcs(
+#     scaler,
+#     base_path: str,
+#     filename: str = "scaler.joblib",
+# ) -> str:
+#     """
+#     Save a fitted scaler to GCS.
+#     """
+#     fs = gcsfs.GCSFileSystem()
+#     path = f"{base_path.rstrip('/')}/{filename}"
+
+#     with fs.open(path, "wb") as f:
+#         joblib.dump(scaler, f)
+
+#     print(f"Saved scaler to {path}")
+#     return path
 
 
 def load_scaler_from_gcs(path: str):

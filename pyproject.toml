@@ -14,10 +14,12 @@ dependencies = [
     "gcsfs",
     "joblib",
     "numpy",
+    "mlflow[databricks]",
     "pandas",
     "pyarrow",
     "scikit-learn",
     "torch",
+    "xgboost",
 ]
 
 # tells setuptools your package code lives under src/

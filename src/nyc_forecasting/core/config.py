@@ -1,6 +1,4 @@
-from dataclasses import dataclass
-
-
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -38,16 +36,22 @@ class LSTMConfig:
     dropout: float = 0.2
     learning_rate: float = 1e-3
     num_epochs: int = 50
-    # best_model_path: Path = Path("artifacts/checkpoints/best_lstm.pt")
     model_path: str = "gs://raw-nyc/models/lstm"
 
 
-# @dataclass(frozen=True)
-# class XGBoostConfig:
-#     n_estimators: int = 300
-#     max_depth: int = 8
-#     learning_rate: float = 0.05
-#     subsample: float = 0.8
-#     colsample_bytree: float = 0.8
-#     random_state: int = 42
-#     model_dir: Path = Path("artifacts/models/xgboost")
+@dataclass(frozen=True)
+class XGBoostConfig:
+    model_path: str = "gs://raw-nyc/models/xgboost"
+
+    n_estimators: int = 50
+    max_depth: int = 4
+    learning_rate: float = 0.1
+    subsample: float = 0.8
+    colsample_bytree: float = 0.8
+
+    random_state: int = 42
+    n_jobs: int = -1
+    objective: str = "reg:squarederror"
+
+    mode: str = "select" # full or select
+    selected_lags: list[int] = field(default_factory=lambda: [1, 2, 3, 24])

@@ -26,7 +26,7 @@ from nyc_forecasting.core.metrics import (
 from nyc_forecasting.core.artifacts import (
     save_config_to_gcs,
     save_results_to_gcs,
-    save_scaler_to_gcs,
+    save_joblib_object_to_gcs,
     save_torch_state_dict_to_gcs,
 )
 from nyc_forecasting.core.lstm_class import DemandLSTM
@@ -204,10 +204,7 @@ def main() -> None:
         )
 
         # Save fitted scaler
-        save_scaler_to_gcs(
-            demand_scaler,
-            base_path,
-        )
+        save_joblib_object_to_gcs(demand_scaler, base_path, "scaler.joblib")
 
         model_config = asdict(model_cfg)
 

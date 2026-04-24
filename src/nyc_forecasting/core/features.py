@@ -108,3 +108,27 @@ def transform_wide_frame(wide_df: pd.DataFrame, scaler: StandardScaler) -> pd.Da
         index=wide_df.index,
         columns=wide_df.columns,
     )
+
+
+def make_time_features_only(index: pd.DatetimeIndex) -> np.ndarray:
+    """
+    Create time-based features from a DatetimeIndex.
+
+    Returns:
+    --------
+    np.ndarray of shape [T, num_features]
+    """
+
+    hour = index.hour
+    dow = index.dayofweek
+
+    hour_sin = np.sin(2 * np.pi * hour / 24)
+    hour_cos = np.cos(2 * np.pi * hour / 24)
+
+    dow_sin = np.sin(2 * np.pi * dow / 7)
+    dow_cos = np.cos(2 * np.pi * dow / 7)
+
+    return np.stack(
+        [hour_sin, hour_cos, dow_sin, dow_cos],
+        axis=1,
+    ).astype("float32")
