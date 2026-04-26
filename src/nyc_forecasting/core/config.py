@@ -55,3 +55,17 @@ class XGBoostConfig:
 
     mode: str = "select" # full or select
     selected_lags: list[int] = field(default_factory=lambda: [1, 2, 3, 24])
+
+
+@dataclass(frozen=True)
+class TransformerConfig:
+    model_path: str = "gs://raw-nyc/models/transformer"
+
+    d_model: int = 64
+    num_heads: int = 4
+    num_layers: int = 2
+    dim_feedforward: int = 128
+    dropout: float = 0.1
+
+    learning_rate: float = 1e-3
+    num_epochs: int = 50
