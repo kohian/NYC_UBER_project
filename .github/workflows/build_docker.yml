@@ -46,7 +46,6 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          target: prod
           tags: |
             us-central1-docker.pkg.dev/nyc-uber-494107/docker-artifacts/nyc-forecast:${{ github.sha }}
             us-central1-docker.pkg.dev/nyc-uber-494107/docker-artifacts/nyc-forecast:latest
