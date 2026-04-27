@@ -191,3 +191,32 @@ def save_results_to_gcs(
         )
 
     print(f"Saved results to {base_path}")
+
+
+def save_tree_feature_importance_to_gcs(
+    fi_df: pd.DataFrame,
+    lag_imp: pd.Series,
+    zone_imp: pd.Series,
+    type_summary: pd.Series,
+    base_path: str,
+) -> None:
+
+    fi_df.to_csv(f"{base_path}/feature_importance.csv", index=False)
+
+    lag_imp.rename("importance").reset_index().to_csv(
+        f"{base_path}/lag_importance.csv", index=False
+    )
+
+    zone_imp.rename("importance").reset_index().to_csv(
+        f"{base_path}/zone_importance.csv", index=False
+    )
+
+    type_summary.reset_index().to_csv(
+        f"{base_path}/type_importance_summary.csv",
+        index=False
+    )
+    # type_summary.rename("importance").reset_index().to_csv(
+    #     f"{base_path}/type_importance.csv", index=False
+    # )
+
+    print(f"Saved feature importance to {base_path}")

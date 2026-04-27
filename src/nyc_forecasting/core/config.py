@@ -43,7 +43,7 @@ class LSTMConfig:
 class XGBoostConfig:
     model_path: str = "gs://raw-nyc/models/xgboost"
 
-    n_estimators: int = 50
+    n_estimators: int = 100
     max_depth: int = 4
     learning_rate: float = 0.1
     subsample: float = 0.8
@@ -55,6 +55,9 @@ class XGBoostConfig:
 
     mode: str = "select" # full or select
     selected_lags: list[int] = field(default_factory=lambda: [1, 2, 3, 24])
+
+    # use_early_stopping: bool = True
+    # early_stopping_rounds: int = 5
 
 
 @dataclass(frozen=True)

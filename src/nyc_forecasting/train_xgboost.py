@@ -27,10 +27,11 @@ from nyc_forecasting.core.artifacts import (
     save_config_to_gcs,
     save_results_to_gcs,
     save_joblib_object_to_gcs,
+    save_tree_feature_importance_to_gcs,
 )
 from nyc_forecasting.core.torch_seed import set_seed
 
-from nyc_forecasting.core.tree_tabular import make_tabular_windows, make_selected_lag_tabular
+from nyc_forecasting.core.tree_tabular import make_tabular_windows, make_selected_lag_tabular, compute_feature_importance
 
 
 def main() -> None:
@@ -73,6 +74,8 @@ def main() -> None:
         # Build full hour × zone matrix
         wide_df = make_full_panel(combined_df)
 
+        zone_names = wide_df.columns.tolist()
+
         # -----------------------------
         # 5. Split into train / val / test
         # -----------------------------
@@ -102,7 +105,7 @@ def main() -> None:
         y_val = val_scaled.to_numpy(dtype="float32")
         y_test = test_scaled.to_numpy(dtype="float32")
 
-        print("BEFORE MAKE TABULAR")
+        # print("BEFORE MAKE TABULAR")
         # -----------------------------
         # 8. Convert sequences into tabular windows
         # -----------------------------
@@ -120,25 +123,28 @@ def main() -> None:
             val_time = make_time_features_only(val_scaled.index)
             test_time = make_time_features_only(test_scaled.index)
 
-            X_train_tab, y_train_tab = make_selected_lag_tabular(
+            X_train_tab, y_train_tab, feature_names = make_selected_lag_tabular(
                 demand_array=y_train,
                 time_features=train_time,
                 lags=model_cfg.selected_lags,
+                zone_names = zone_names,
             )
 
-            X_val_tab, y_val_tab = make_selected_lag_tabular(
+            X_val_tab, y_val_tab, _  = make_selected_lag_tabular(
                 demand_array=y_val,
                 time_features=val_time,
                 lags=model_cfg.selected_lags,
+                zone_names = zone_names,
             )
 
-            X_test_tab, y_test_tab = make_selected_lag_tabular(
+            X_test_tab, y_test_tab, _ = make_selected_lag_tabular(
                 demand_array=y_test,
                 time_features=test_time,
                 lags=model_cfg.selected_lags,
+                zone_names = zone_names,
             )
 
-        print("AFTER MAKE TABULAR")
+        # print("AFTER MAKE TABULAR")
         # Runtime-derived dimensions
         input_size = X_train.shape[-1]        # features per timestep
         num_targets = y_train.shape[-1]       # number of zones predicted
@@ -181,16 +187,27 @@ def main() -> None:
             "xgboost_mode": model_cfg.mode,
             "selected_lags": model_cfg.selected_lags,
         })
-
-        print("BEFORE TRAINING")
-        print("Num targets:", y_train_tab.shape[1])
+ 
+        # print("BEFORE TRAINING")
+        # print("Num targets:", y_train_tab.shape[1])
         # -----------------------------
         # 11. Train model
         # -----------------------------
         # First baseline: fit on train split only.
         # You can later use val split for tuning.
+        # if model_cfg.use_early_stopping:
+        #     model.fit(
+        #         X_train_tab,
+        #         y_train_tab,
+        #         eval_set=[(X_val_tab, y_val_tab)],
+        #         early_stopping_rounds=model_cfg.early_stopping_rounds,
+        #         verbose=True,
+        #     )
+
+        # else:
         model.fit(X_train_tab, y_train_tab)
-        print("AFTER TRAINING")
+
+        # print("AFTER TRAINING")
         # -----------------------------
         # 12. Create artifact path
         # -----------------------------
@@ -245,12 +262,17 @@ def main() -> None:
         results = calculate_regression_metrics(
             preds_raw=pred_real,
             targets_raw=y_real,
-            zone_names=wide_df.columns.tolist(),
+            zone_names=zone_names,
             mape_mode="exclude",
             epsilon=1e-1,
         )
 
         print_metric_summary(results, mape_mode="exclude")
+
+        fi_df, lag_imp, zone_imp, type_summary = compute_feature_importance(
+            model,
+            feature_names,
+        )
 
         # -----------------------------
         # 16. Log metrics to MLflow
@@ -276,6 +298,15 @@ def main() -> None:
                 "model_type": "xgboost",
             },
         )
+
+        save_tree_feature_importance_to_gcs(
+            fi_df, 
+            lag_imp, 
+            zone_imp, 
+            type_summary, 
+            base_path
+        )
+        
 
 
 if __name__ == "__main__":

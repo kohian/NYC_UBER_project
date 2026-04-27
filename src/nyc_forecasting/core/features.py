@@ -110,25 +110,62 @@ def transform_wide_frame(wide_df: pd.DataFrame, scaler: StandardScaler) -> pd.Da
     )
 
 
-def make_time_features_only(index: pd.DatetimeIndex) -> np.ndarray:
-    """
-    Create time-based features from a DatetimeIndex.
+# def make_time_features_only(index: pd.DatetimeIndex) -> np.ndarray:
+#     """
+#     Create time-based features from a DatetimeIndex.
 
-    Returns:
-    --------
-    np.ndarray of shape [T, num_features]
-    """
+#     Returns:
+#     --------
+#     np.ndarray of shape [T, num_features]
+#     """
 
+#     hour = index.hour
+#     dow = index.dayofweek
+
+#     hour_sin = np.sin(2 * np.pi * hour / 24)
+#     hour_cos = np.cos(2 * np.pi * hour / 24)
+
+#     dow_sin = np.sin(2 * np.pi * dow / 7)
+#     dow_cos = np.cos(2 * np.pi * dow / 7)
+
+#     return np.stack(
+#         [hour_sin, hour_cos, dow_sin, dow_cos],
+#         axis=1,
+#     ).astype("float32")
+
+
+def make_time_features_only(index: pd.DatetimeIndex) -> pd.DataFrame:
     hour = index.hour
     dow = index.dayofweek
 
-    hour_sin = np.sin(2 * np.pi * hour / 24)
-    hour_cos = np.cos(2 * np.pi * hour / 24)
+    df = pd.DataFrame({
+        "hour_sin": np.sin(2 * np.pi * hour / 24),
+        "hour_cos": np.cos(2 * np.pi * hour / 24),
+        "dow_sin": np.sin(2 * np.pi * dow / 7),
+        "dow_cos": np.cos(2 * np.pi * dow / 7),
+    }, index=index)
 
-    dow_sin = np.sin(2 * np.pi * dow / 7)
-    dow_cos = np.cos(2 * np.pi * dow / 7)
+    return df.astype("float32")
 
-    return np.stack(
-        [hour_sin, hour_cos, dow_sin, dow_cos],
-        axis=1,
-    ).astype("float32")
+
+def make_time_features_only(index: pd.DatetimeIndex) -> pd.DataFrame:
+    holiday_dates = set(pd.DatetimeIndex(NYC_HOLIDAYS).normalize())
+
+    hour = index.hour
+    dow = index.dayofweek
+    month = index.month
+
+    df = pd.DataFrame({
+        "hour_sin": np.sin(2 * np.pi * hour / 24),
+        "hour_cos": np.cos(2 * np.pi * hour / 24),
+        "dow_sin": np.sin(2 * np.pi * dow / 7),
+        "dow_cos": np.cos(2 * np.pi * dow / 7),
+        "month_sin": np.sin(2 * np.pi * (month - 1) / 12),
+        "month_cos": np.cos(2 * np.pi * (month - 1) / 12),
+        "is_weekend": (dow >= 5).astype("float32"),
+        "is_holiday": pd.DatetimeIndex(index.normalize())
+            .isin(holiday_dates)
+            .astype("float32"),
+    }, index=index)
+
+    return df.astype("float32")
