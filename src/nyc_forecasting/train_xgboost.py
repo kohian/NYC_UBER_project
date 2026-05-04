@@ -92,25 +92,26 @@ def main() -> None:
         val_scaled = transform_wide_frame(val_wide, demand_scaler)
         test_scaled = transform_wide_frame(test_wide, demand_scaler)
 
-        # -----------------------------
-        # 7. Build features
-        # -----------------------------
-        # Same feature engineering as LSTM for fair comparison
-        X_train = add_time_features(train_scaled)
-        X_val = add_time_features(val_scaled)
-        X_test = add_time_features(test_scaled)
-
-        # Targets are scaled demand values
-        y_train = train_scaled.to_numpy(dtype="float32")
-        y_val = val_scaled.to_numpy(dtype="float32")
-        y_test = test_scaled.to_numpy(dtype="float32")
-
-        # print("BEFORE MAKE TABULAR")
-        # -----------------------------
-        # 8. Convert sequences into tabular windows
-        # -----------------------------
 
         if model_cfg.mode == "full":
+            # -----------------------------
+            # 7. Build features
+            # -----------------------------
+            # Same feature engineering as LSTM for fair comparison
+            X_train = add_time_features(train_scaled)
+            X_val = add_time_features(val_scaled)
+            X_test = add_time_features(test_scaled)
+
+            # Targets are scaled demand values
+            y_train = train_scaled.to_numpy(dtype="float32")
+            y_val = val_scaled.to_numpy(dtype="float32")
+            y_test = test_scaled.to_numpy(dtype="float32")
+
+            # print("BEFORE MAKE TABULAR")
+            # -----------------------------
+            # 8. Convert sequences into tabular windows
+            # -----------------------------
+
             # LSTM uses [samples, seq_len, features]
             # XGBoost needs [samples, flattened_features]
             X_train_tab, y_train_tab = make_tabular_windows(X_train, y_train, data_cfg.input_len)
