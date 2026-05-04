@@ -35,6 +35,7 @@ def make_tabular_windows(
 def make_selected_lag_tabular(
     demand_array: np.ndarray,
     time_features: pd.DataFrame,
+    use_time_features: bool, 
     lags: list[int],
     zone_names: list[str] | list[int],
 ) -> tuple[np.ndarray, np.ndarray, list[str]]:
@@ -76,8 +77,9 @@ def make_selected_lag_tabular(
         for zone_name in zone_names:
             feature_names.append(f"lag_{lag}_zone_{zone_name}")
 
-    # Time features
-    feature_names.extend(time_features.columns.tolist())
+    # Time features (optional)
+    if use_time_features:
+        feature_names.extend(time_features.columns.tolist())
 
     X_rows = []
     y_rows = []
@@ -90,7 +92,8 @@ def make_selected_lag_tabular(
         for lag in lags:
             row.extend(demand_array[t - lag])
 
-        row.extend(time_values[t])
+        if use_time_features:
+            row.extend(time_values[t])
 
         X_rows.append(row)
         y_rows.append(demand_array[t])

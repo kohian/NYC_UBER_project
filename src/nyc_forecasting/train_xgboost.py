@@ -79,8 +79,8 @@ def main() -> None:
         # -----------------------------
         # 5. Split into train / val / test
         # -----------------------------
-        train_wide = split_wide_by_month(wide_df, data_cfg.train_start, data_cfg.train_end)
-        val_wide = split_wide_by_month(wide_df, data_cfg.val_start, data_cfg.val_end)
+        train_wide = split_wide_by_month(wide_df, data_cfg.train_start, data_cfg.val_end)
+        # val_wide = split_wide_by_month(wide_df, data_cfg.val_start, data_cfg.val_end)
         test_wide = split_wide_by_month(wide_df, data_cfg.test_start, data_cfg.test_end)
 
         # -----------------------------
@@ -89,9 +89,13 @@ def main() -> None:
         demand_scaler = fit_demand_scaler(train_wide)
 
         train_scaled = transform_wide_frame(train_wide, demand_scaler)
-        val_scaled = transform_wide_frame(val_wide, demand_scaler)
+        # val_scaled = transform_wide_frame(val_wide, demand_scaler)
         test_scaled = transform_wide_frame(test_wide, demand_scaler)
 
+        # Targets are scaled demand values
+        y_train = train_scaled.to_numpy(dtype="float32")
+        # y_val = val_scaled.to_numpy(dtype="float32")
+        y_test = test_scaled.to_numpy(dtype="float32")
 
         if model_cfg.mode == "full":
             # -----------------------------
@@ -99,13 +103,9 @@ def main() -> None:
             # -----------------------------
             # Same feature engineering as LSTM for fair comparison
             X_train = add_time_features(train_scaled)
-            X_val = add_time_features(val_scaled)
+            # X_val = add_time_features(val_scaled)
             X_test = add_time_features(test_scaled)
 
-            # Targets are scaled demand values
-            y_train = train_scaled.to_numpy(dtype="float32")
-            y_val = val_scaled.to_numpy(dtype="float32")
-            y_test = test_scaled.to_numpy(dtype="float32")
 
             # print("BEFORE MAKE TABULAR")
             # -----------------------------
@@ -115,39 +115,42 @@ def main() -> None:
             # LSTM uses [samples, seq_len, features]
             # XGBoost needs [samples, flattened_features]
             X_train_tab, y_train_tab = make_tabular_windows(X_train, y_train, data_cfg.input_len)
-            X_val_tab, y_val_tab = make_tabular_windows(X_val, y_val, data_cfg.input_len)
+            # X_val_tab, y_val_tab = make_tabular_windows(X_val, y_val, data_cfg.input_len)
             X_test_tab, y_test_tab = make_tabular_windows(X_test, y_test, data_cfg.input_len)
 
         else:
             # time features (only)
             train_time = make_time_features_only(train_scaled.index)
-            val_time = make_time_features_only(val_scaled.index)
+            # val_time = make_time_features_only(val_scaled.index)
             test_time = make_time_features_only(test_scaled.index)
 
             X_train_tab, y_train_tab, feature_names = make_selected_lag_tabular(
                 demand_array=y_train,
                 time_features=train_time,
+                use_time_features=model_cfg.use_time_features,
                 lags=model_cfg.selected_lags,
                 zone_names = zone_names,
             )
 
-            X_val_tab, y_val_tab, _  = make_selected_lag_tabular(
-                demand_array=y_val,
-                time_features=val_time,
-                lags=model_cfg.selected_lags,
-                zone_names = zone_names,
-            )
+            # X_val_tab, y_val_tab, _  = make_selected_lag_tabular(
+            #     demand_array=y_val,
+            #     time_features=val_time,
+            #     use_time_features=model_cfg.use_time_features,
+            #     lags=model_cfg.selected_lags,
+            #     zone_names = zone_names,
+            # )
 
             X_test_tab, y_test_tab, _ = make_selected_lag_tabular(
                 demand_array=y_test,
                 time_features=test_time,
+                use_time_features=model_cfg.use_time_features,
                 lags=model_cfg.selected_lags,
                 zone_names = zone_names,
             )
 
         # print("AFTER MAKE TABULAR")
         # Runtime-derived dimensions
-        input_size = X_train.shape[-1]        # features per timestep
+        # input_size = X_train.shape[-1]        # features per timestep
         num_targets = y_train.shape[-1]       # number of zones predicted
         flat_input_size = X_train_tab.shape[-1]
 
@@ -177,7 +180,7 @@ def main() -> None:
             "model_type": "xgboost",
             "input_len": data_cfg.input_len,
             "output_len": data_cfg.output_len,
-            "input_size_per_timestep": input_size,
+            # "input_size_per_timestep": input_size,
             "flat_input_size": flat_input_size,
             "num_targets": num_targets,
             "n_estimators": model_cfg.n_estimators,
@@ -187,10 +190,14 @@ def main() -> None:
             "colsample_bytree": model_cfg.colsample_bytree,
             "xgboost_mode": model_cfg.mode,
             "selected_lags": model_cfg.selected_lags,
+            # "use_early_stopping": model_cfg.use_early_stopping,
+            # "early_stopping_rounds": model_cfg.early_stopping_rounds,
+            "use_time_features": model_cfg.use_time_features,
         })
  
         # print("BEFORE TRAINING")
         # print("Num targets:", y_train_tab.shape[1])
+
         # -----------------------------
         # 11. Train model
         # -----------------------------
@@ -218,15 +225,15 @@ def main() -> None:
         # 13. Save artifacts
         # -----------------------------
         # Save model
-        save_joblib_object_to_gcs(model, base_path, "xgboost_model.joblib")
+        # save_joblib_object_to_gcs(model, base_path, "xgboost_model.joblib")
 
-        # Save scaler
-        save_joblib_object_to_gcs(demand_scaler, base_path, "scaler.joblib")
+        # # Save scaler
+        # save_joblib_object_to_gcs(demand_scaler, base_path, "scaler.joblib")
 
         # Save config
         model_config = asdict(model_cfg)
         model_config.update({
-            "input_size_per_timestep": input_size,
+            # "input_size_per_timestep": input_size,
             "flat_input_size": flat_input_size,
             "num_targets": num_targets,
             "model_type": "xgboost",
