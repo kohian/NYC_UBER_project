@@ -235,6 +235,9 @@ def main() -> None:
         # Save scaler
         save_joblib_object_to_gcs(demand_scaler, inference_path, "scaler.joblib")
 
+        # Save zone list
+        save_json_to_gcs(zone_names,inference_path, "zone_names.json")
+
         # Save config
         model_config = asdict(model_cfg)
         model_config.update({

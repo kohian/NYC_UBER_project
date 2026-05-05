@@ -87,7 +87,7 @@ def load_scaler_from_gcs(path: str):
     with fs.open(path, "rb") as f:
         return joblib.load(f)
 
-def save_json_to_gcs(data: dict, base_path: str, filename: str) -> str:
+def save_json_to_gcs(data: dict | list, base_path: str, filename: str) -> str:
     """
     Save a JSON-serializable dict to GCS.
     """

@@ -106,8 +106,13 @@ def main() -> None:
         "data_config": asdict(data_cfg),
     }
 
+
+    # NOT DONE HERE
+    base_path ="?????"
+
     save_joblib_object_to_gcs(model, base_path, "xgboost_model.joblib")
     save_joblib_object_to_gcs(demand_scaler, base_path, "scaler.joblib")
+    save_json_to_gcs(zone_names,base_path, "zone_names.json")
     save_config_to_gcs(run_config, base_path, "run_config.json")
 
 
