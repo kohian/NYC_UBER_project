@@ -17,20 +17,6 @@ def save_torch_state_dict_to_gcs(
 ) -> str:
     """
     Save a PyTorch state_dict to GCS.
-
-    Parameters
-    ----------
-    state_dict : dict
-        PyTorch model state_dict
-    base_path : str
-        GCS directory, e.g. gs://bucket/models/run_001
-    filename : str
-        Output filename
-
-    Returns
-    -------
-    str
-        Full saved path
     """
     fs = gcsfs.GCSFileSystem()
     path = f"{base_path.rstrip('/')}/{filename}"
@@ -60,32 +46,14 @@ def save_joblib_object_to_gcs(obj, base_path: str, filename: str) -> str:
     print(f"Saved object to {path}")
     return path
 
-
-# def save_scaler_to_gcs(
-#     scaler,
-#     base_path: str,
-#     filename: str = "scaler.joblib",
-# ) -> str:
-#     """
-#     Save a fitted scaler to GCS.
-#     """
-#     fs = gcsfs.GCSFileSystem()
-#     path = f"{base_path.rstrip('/')}/{filename}"
-
-#     with fs.open(path, "wb") as f:
-#         joblib.dump(scaler, f)
-
-#     print(f"Saved scaler to {path}")
-#     return path
-
-
-def load_scaler_from_gcs(path: str):
+def load_joblib_object_from_gcs(path: str):
     """
     Load a scaler from GCS.
     """
     fs = gcsfs.GCSFileSystem()
     with fs.open(path, "rb") as f:
         return joblib.load(f)
+
 
 def save_json_to_gcs(data: dict | list, base_path: str, filename: str) -> str:
     """
@@ -99,6 +67,14 @@ def save_json_to_gcs(data: dict | list, base_path: str, filename: str) -> str:
 
     print(f"Saved {filename} to {path}")
     return path
+
+
+def load_json_from_gcs(path: str):
+    fs = gcsfs.GCSFileSystem()
+    with fs.open(path, "r") as f:
+        return json.load(f)
+
+
 
 
 def save_config_to_gcs(config: Any, base_path: str, filename: str) -> str:
@@ -117,6 +93,9 @@ def save_config_to_gcs(config: Any, base_path: str, filename: str) -> str:
         raise TypeError("config must be a dataclass instance or dict")
 
     return save_json_to_gcs(data, base_path, filename)
+
+
+
 
 
 

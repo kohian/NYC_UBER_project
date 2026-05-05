@@ -4,8 +4,9 @@ from dataclasses import dataclass, field
 @dataclass(frozen=True)
 class PipeConfig:
     pipe_src: str = "gs://raw-nyc/processed"
-    pipe_start: str = "2025-01"
-    pipe_end: str = "2025-01"
+    batch_pipe_start: str = "2025-01"
+    batch_pipe_end: str = "2025-01"
+    single_pipe_start_end: str = "2025-02"
 
     bq_table_id: str = "nyc-uber-494107.nyc_forecasting.hourly_demand_actuals"
 
