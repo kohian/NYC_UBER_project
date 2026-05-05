@@ -224,11 +224,11 @@ def main() -> None:
         # -----------------------------
         # 13. Save artifacts
         # -----------------------------
-        # Save model
-        # save_joblib_object_to_gcs(model, base_path, "xgboost_model.joblib")
+        #Save model
+        save_joblib_object_to_gcs(model, base_path, "xgboost_model.joblib")
 
-        # # Save scaler
-        # save_joblib_object_to_gcs(demand_scaler, base_path, "scaler.joblib")
+        # Save scaler
+        save_joblib_object_to_gcs(demand_scaler, base_path, "scaler.joblib")
 
         # Save config
         model_config = asdict(model_cfg)
@@ -254,7 +254,7 @@ def main() -> None:
         # Convert predictions back to raw demand units
         pred_real = demand_scaler.inverse_transform(pred_scaled)
 
-        # Align raw next-step targets from original unscaled test data
+        # Align raw next-step targets from original unscaled test data (instead of inverse scaling the y_test)
         if model_cfg.mode == "full":        
             y_real = make_raw_targets(test_wide, input_len=data_cfg.input_len)
         else:
