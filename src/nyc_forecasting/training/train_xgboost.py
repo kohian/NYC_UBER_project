@@ -220,15 +220,20 @@ def main() -> None:
         # 12. Create artifact path
         # -----------------------------
         base_path = f"{model_cfg.model_path.rstrip('/')}/{run_id}"
+        inference_path = f"{base_path}/inference"
+        config_path = f"{base_path}/config"
+        results_path = f"{base_path}/results"
+        feature_importance_path = f"{base_path}/feature_importance"
+
 
         # -----------------------------
         # 13. Save artifacts
         # -----------------------------
         #Save model
-        save_joblib_object_to_gcs(model, base_path, "xgboost_model.joblib")
+        save_joblib_object_to_gcs(model, inference_path, "xgboost_model.joblib")
 
         # Save scaler
-        save_joblib_object_to_gcs(demand_scaler, base_path, "scaler.joblib")
+        save_joblib_object_to_gcs(demand_scaler, inference_path, "scaler.joblib")
 
         # Save config
         model_config = asdict(model_cfg)
@@ -244,7 +249,7 @@ def main() -> None:
             "data_config": asdict(data_cfg),
         }
 
-        save_config_to_gcs(run_config, base_path, "run_config.json")
+        save_config_to_gcs(run_config, config_path, "run_config.json")
 
         # -----------------------------
         # 14. Predict on test set
@@ -300,7 +305,7 @@ def main() -> None:
         # -----------------------------
         save_results_to_gcs(
             results,
-            base_path=base_path,
+            base_path=results_path,
             metadata={
                 "run_id": run_id,
                 "model_type": "xgboost",
@@ -312,7 +317,7 @@ def main() -> None:
             lag_imp, 
             zone_imp, 
             type_summary, 
-            base_path
+            feature_importance_path
         )
         
 
