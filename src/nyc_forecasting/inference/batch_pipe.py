@@ -2,7 +2,7 @@ import pandas as pd
 from google.cloud import bigquery
 
 from nyc_forecasting.inference.config import PipeConfig
-from nyc_forecasting.inference.bigqueryio import load_dataframe_to_bigquery
+from nyc_forecasting.inference.bigquery_io import load_dataframe_to_bigquery
 
 from nyc_forecasting.core.data import (
     load_monthly_files,
