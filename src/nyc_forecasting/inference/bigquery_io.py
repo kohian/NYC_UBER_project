@@ -23,6 +23,22 @@ def load_dataframe_to_bigquery(
     print(f"Loaded {len(df)} rows into {table_id}")
 
 
+def load_all_actuals_from_bigquery(
+    client: bigquery.Client,
+    actuals_table: str,
+) -> pd.DataFrame:
+    query = f"""
+    SELECT
+        hour,
+        PULocationID,
+        demand
+    FROM `{actuals_table}`
+    ORDER BY hour, PULocationID
+    """
+
+    return client.query(query).to_dataframe()
+
+
 def load_latest_actuals_from_bigquery(
     client: bigquery.Client,
     actuals_table: str,
@@ -49,3 +65,34 @@ def load_latest_actuals_from_bigquery(
 
     return client.query(query, job_config=job_config).to_dataframe()
 
+
+
+# MAY NOT WANT THIS OR NEED A DIFFERENT VERSION OF THIS
+
+def prediction_already_exists(
+    client: bigquery.Client,
+    predictions_table: str,
+    target_timestamp: pd.Timestamp,
+    model_version: str,
+) -> bool:
+    query = f"""
+    SELECT COUNT(*) AS cnt
+    FROM `{predictions_table}`
+    WHERE target_timestamp = @target_timestamp
+      AND model_version = @model_version
+    """
+
+    # This part handles the @ in the query which prevents SQL injection
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter(
+                "target_timestamp",
+                "TIMESTAMP",
+                target_timestamp.to_pydatetime(),
+            ),
+            bigquery.ScalarQueryParameter("model_version", "STRING", model_version),
+        ]
+    )
+
+    result = client.query(query, job_config=job_config).to_dataframe()
+    return int(result.loc[0, "cnt"]) > 0

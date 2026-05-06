@@ -255,7 +255,7 @@ def split_wide_by_month(
 
 def make_raw_targets(
     wide_df: pd.DataFrame,
-    input_len: int,
+    target_start_idx: int,
 ) -> np.ndarray:
     """
     Build raw next-step targets aligned with sequence predictions.
@@ -268,4 +268,4 @@ def make_raw_targets(
     Output shape:
         [T - input_len, num_zones]
     """
-    return wide_df.to_numpy(dtype=np.float32)[input_len:]
+    return wide_df.to_numpy(dtype=np.float32)[target_start_idx:]

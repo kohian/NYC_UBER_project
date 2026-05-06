@@ -56,6 +56,7 @@ class XGBoostConfig:
     mode: str = "select" # full or select
     selected_lags: list[int] = field(default_factory=lambda: [1, 2, 3, 24])
     use_time_features: bool = True
+    horizon: int = 1
 
 # Can't use early stopping due to MultiOutputRegressor
     # use_early_stopping: bool = True

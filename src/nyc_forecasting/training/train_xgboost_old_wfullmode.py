@@ -14,7 +14,7 @@ from nyc_forecasting.core.data import (
     make_raw_targets,
 )
 from nyc_forecasting.core.features import (
-    # add_time_features,
+    add_time_features,
     fit_demand_scaler,
     transform_wide_frame,
     make_time_features_only,
@@ -33,7 +33,7 @@ from nyc_forecasting.core.artifacts import (
 from nyc_forecasting.core.torch_seed import set_seed
 
 from nyc_forecasting.core.tree_tabular import (
-    # make_tabular_windows, 
+    make_tabular_windows, 
     make_selected_lag_tabular, 
     compute_feature_importance, 
     build_lag_feature_names,
@@ -86,6 +86,7 @@ def main() -> None:
         # 5. Split into train / val / test
         # -----------------------------
         train_wide = split_wide_by_month(wide_df, data_cfg.train_start, data_cfg.val_end)
+        # val_wide = split_wide_by_month(wide_df, data_cfg.val_start, data_cfg.val_end)
         test_wide = split_wide_by_month(wide_df, data_cfg.test_start, data_cfg.test_end)
 
         # -----------------------------
@@ -94,42 +95,75 @@ def main() -> None:
         demand_scaler = fit_demand_scaler(train_wide)
 
         train_scaled = transform_wide_frame(train_wide, demand_scaler)
+        # val_scaled = transform_wide_frame(val_wide, demand_scaler)
         test_scaled = transform_wide_frame(test_wide, demand_scaler)
 
         # Targets are scaled demand values
         y_train = train_scaled.to_numpy(dtype="float32")
+        # y_val = val_scaled.to_numpy(dtype="float32")
         y_test = test_scaled.to_numpy(dtype="float32")
 
+        if model_cfg.mode == "full":
+            # -----------------------------
+            # 7. Build features
+            # -----------------------------
+            # Same feature engineering as LSTM for fair comparison
+            X_train = add_time_features(train_scaled)
+            # X_val = add_time_features(val_scaled)
+            X_test = add_time_features(test_scaled)
 
-        # time features (only)
-        train_time = make_time_features_only(train_scaled.index)
-        test_time = make_time_features_only(test_scaled.index)
 
-        X_train_tab, y_train_tab = make_selected_lag_tabular(
-            demand_array=y_train,
-            time_features=train_time,
-            use_time_features=model_cfg.use_time_features,
-            lags=model_cfg.selected_lags,
-            horizon = model_cfg.horizon,
-        )
+            # print("BEFORE MAKE TABULAR")
+            # -----------------------------
+            # 8. Convert sequences into tabular windows
+            # -----------------------------
 
-        feature_names = build_lag_feature_names(
-            lags=model_cfg.selected_lags,
-            zone_names= zone_names,
-            use_time_features=model_cfg.use_time_features,
-            time_feature_columns=train_time.columns.tolist(),
-        )
-        
+            # LSTM uses [samples, seq_len, features]
+            # XGBoost needs [samples, flattened_features]
+            X_train_tab, y_train_tab = make_tabular_windows(X_train, y_train, data_cfg.input_len)
+            # X_val_tab, y_val_tab = make_tabular_windows(X_val, y_val, data_cfg.input_len)
+            X_test_tab, y_test_tab = make_tabular_windows(X_test, y_test, data_cfg.input_len)
 
-        X_test_tab, y_test_tab = make_selected_lag_tabular(
-            demand_array=y_test,
-            time_features=test_time,
-            use_time_features=model_cfg.use_time_features,
-            lags=model_cfg.selected_lags,
-            horizon = model_cfg.horizon,
-        )
+        else:
+            # time features (only)
+            train_time = make_time_features_only(train_scaled.index)
+            # val_time = make_time_features_only(val_scaled.index)
+            test_time = make_time_features_only(test_scaled.index)
 
+            X_train_tab, y_train_tab = make_selected_lag_tabular(
+                demand_array=y_train,
+                time_features=train_time,
+                use_time_features=model_cfg.use_time_features,
+                lags=model_cfg.selected_lags,
+                # zone_names = zone_names,
+            )
+
+            feature_names = build_lag_feature_names(
+                lags=model_cfg.selected_lags,
+                zone_names= zone_names,
+                use_time_features=model_cfg.use_time_features,
+                time_feature_columns=train_time.columns.tolist(),
+            )
+            
+            # X_val_tab, y_val_tab, _  = make_selected_lag_tabular(
+            #     demand_array=y_val,
+            #     time_features=val_time,
+            #     use_time_features=model_cfg.use_time_features,
+            #     lags=model_cfg.selected_lags,
+            #     zone_names = zone_names,
+            # )
+
+            X_test_tab, y_test_tab = make_selected_lag_tabular(
+                demand_array=y_test,
+                time_features=test_time,
+                use_time_features=model_cfg.use_time_features,
+                lags=model_cfg.selected_lags,
+                # zone_names = zone_names,
+            )
+
+        # print("AFTER MAKE TABULAR")
         # Runtime-derived dimensions
+        # input_size = X_train.shape[-1]        # features per timestep
         num_targets = y_train.shape[-1]       # number of zones predicted
         flat_input_size = X_train_tab.shape[-1]
 
@@ -157,6 +191,9 @@ def main() -> None:
         # -----------------------------
         mlflow.log_params({
             "model_type": "xgboost",
+            "input_len": data_cfg.input_len,
+            "output_len": data_cfg.output_len,
+            # "input_size_per_timestep": input_size,
             "flat_input_size": flat_input_size,
             "num_targets": num_targets,
             "n_estimators": model_cfg.n_estimators,
@@ -164,23 +201,34 @@ def main() -> None:
             "learning_rate": model_cfg.learning_rate,
             "subsample": model_cfg.subsample,
             "colsample_bytree": model_cfg.colsample_bytree,
-            # "xgboost_mode": model_cfg.mode,
+            "xgboost_mode": model_cfg.mode,
             "selected_lags": model_cfg.selected_lags,
             # "use_early_stopping": model_cfg.use_early_stopping,
             # "early_stopping_rounds": model_cfg.early_stopping_rounds,
             "use_time_features": model_cfg.use_time_features,
-            "horizon": model_cfg.horizon,
         })
  
+        # print("BEFORE TRAINING")
+        # print("Num targets:", y_train_tab.shape[1])
 
         # -----------------------------
         # 11. Train model
         # -----------------------------
         # First baseline: fit on train split only.
         # You can later use val split for tuning.
+        # if model_cfg.use_early_stopping:
+        #     model.fit(
+        #         X_train_tab,
+        #         y_train_tab,
+        #         eval_set=[(X_val_tab, y_val_tab)],
+        #         early_stopping_rounds=model_cfg.early_stopping_rounds,
+        #         verbose=True,
+        #     )
 
+        # else:
         model.fit(X_train_tab, y_train_tab)
 
+        # print("AFTER TRAINING")
         # -----------------------------
         # 12. Create artifact path
         # -----------------------------
@@ -206,6 +254,7 @@ def main() -> None:
         # Save config
         model_config = asdict(model_cfg)
         model_config.update({
+            # "input_size_per_timestep": input_size,
             "flat_input_size": flat_input_size,
             "num_targets": num_targets,
             "model_type": "xgboost",
@@ -227,8 +276,11 @@ def main() -> None:
         pred_real = demand_scaler.inverse_transform(pred_scaled)
 
         # Align raw next-step targets from original unscaled test data (instead of inverse scaling the y_test)
-        max_lag = max(model_cfg.selected_lags)
-        y_real = make_raw_targets(test_wide, target_start_idx=max_lag + model_cfg.horizon - 1)
+        if model_cfg.mode == "full":        
+            y_real = make_raw_targets(test_wide, input_len=data_cfg.input_len)
+        else:
+            max_lag = max(model_cfg.selected_lags)
+            y_real = make_raw_targets(test_wide, input_len=max_lag )
 
         # Sanity check
         assert pred_real.shape == y_real.shape
@@ -284,6 +336,7 @@ def main() -> None:
             feature_importance_path
         )
         
+
 
 if __name__ == "__main__":
     main()

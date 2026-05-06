@@ -167,39 +167,77 @@ def main() -> None:
     # print(f"Latest actual hour: {latest_actual_hour}")
     # print(f"Target timestamp: {target_timestamp}")
 
-    if prediction_already_exists(
-        client=client,
-        predictions_table=predictions_table,
-        target_timestamp=target_timestamp,
-        model_version=model_version,
-    ):
-        print(
-            f"Prediction already exists for {target_timestamp} "
-            f"and model_version={model_version}. Skipping."
-        )
-        return
+    # if prediction_already_exists(
+    #     client=client,
+    #     predictions_table=predictions_table,
+    #     target_timestamp=target_timestamp,
+    #     model_version=model_version,
+    # ):
+    #     print(
+    #         f"Prediction already exists for {target_timestamp} "
+    #         f"and model_version={model_version}. Skipping."
+    #     )
+    #     return
 
     print("Building inference features...")
-    X_infer = build_single_inference_row(
-        wide_df=wide_df,
-        scaler=scaler,
-        data_cfg=data_cfg,
-        model_cfg=model_cfg,
-        zone_names=zone_names,
-    )
+    scaled_wide = transform_wide_frame(wide_df, scaler)
+    if model_cfg.select_lags :
+        max_lag = max(model_cfg.selected_lags)
+
+        if len(scaled_wide) <= max_lag:
+            raise ValueError(
+                f"Not enough rows for inference. "
+                f"Need more than max_lag={max_lag}, got {len(scaled_wide)}."
+            )
+
+        time_features = make_time_features_only(scaled_wide.index)
+
+        X_tab, _ = make_selected_lag_tabular(
+            demand_array=scaled_wide.to_numpy(dtype="float32"),
+            time_features=time_features,
+            use_time_features=model_cfg.use_time_features,
+            lags=model_cfg.selected_lags,
+            horizon = 0 
+        )        
+
+    else:
+        if len(scaled_wide) < model_cfg.input_len:
+            raise ValueError(
+                f"Not enough rows for inference. "
+                f"Need at least {model_cfg.input_len}, got {len(scaled_wide)}."
+            )
+
+        X = add_time_features(scaled_wide)
+        dummy_y = scaled_wide.to_numpy(dtype="float32")
+
+        X_tab, _ = make_tabular_windows(
+            X=X,
+            y=dummy_y,
+            input_len=model_cfg.input_len,
+            horizon = 0 
+        )
+
+
+    # X_infer = build_single_inference_row(
+    #     wide_df=wide_df,
+    #     scaler=scaler,
+    #     data_cfg=data_cfg,
+    #     model_cfg=model_cfg,
+    #     zone_names=zone_names,
+    # )
 
     print("Predicting...")
-    pred_scaled = model.predict(X_infer)
+    pred_scaled = model.predict(X_tab)
     pred_real = scaler.inverse_transform(pred_scaled)
 
     # Optional safety: demand should not be negative
     pred_real = pred_real.clip(min=0)
 
-    forecast_run_timestamp = datetime.now(timezone.utc)
+    # forecast_run_timestamp = datetime.now(timezone.utc)
 
     pred_df = pd.DataFrame({
-        "forecast_run_timestamp": forecast_run_timestamp,
-        "target_timestamp": target_timestamp,
+        # "forecast_run_timestamp": forecast_run_timestamp,
+        # "target_timestamp": target_timestamp,
         "PULocationID": zone_names,
         "predicted_demand": pred_real[0],
         "model_version": model_version,

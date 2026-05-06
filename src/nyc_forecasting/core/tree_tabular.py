@@ -1,12 +1,11 @@
 import numpy as np
 import pandas as pd
 
-
-
 def make_tabular_windows(
     X: np.ndarray,
     y: np.ndarray,
     input_len: int,
+    horizon: int = 1, 
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Convert sequential data into tabular windows for models like XGBoost.
@@ -18,27 +17,30 @@ def make_tabular_windows(
     -------
     X_tab : [T - input_len, input_len * F]
     y_tab : [T - input_len, num_targets]
-    """
+    """    
     X_list = []
     y_list = []
 
-    for i in range(len(X) - input_len):
-        x_window = X[i : i + input_len]          # [input_len, F]
-        target = y[i + input_len]                # [num_targets]
+    max_start = len(X) - input_len - horizon + 1
 
-        X_list.append(x_window.reshape(-1))      # flatten to 1D
+    for i in range(max_start):
+        x_window = X[i : i + input_len]
+        target = y[i + input_len + horizon - 1]
+
+        X_list.append(x_window.reshape(-1))
         y_list.append(target)
 
     return np.array(X_list, dtype=np.float32), np.array(y_list, dtype=np.float32)
 
-
 def make_selected_lag_tabular(
     demand_array: np.ndarray,
     time_features: pd.DataFrame,
-    use_time_features: bool, 
+    use_time_features: bool,
     lags: list[int],
-    zone_names: list[str] | list[int],
-) -> tuple[np.ndarray, np.ndarray, list[str]]:
+    # zone_names: list[str] | list[int],
+    horizon: int = 1, 
+) -> tuple[np.ndarray, np.ndarray]:    
+# ) -> tuple[np.ndarray, np.ndarray, list[str]]:
     """
     Build tabular XGBoost features using selected demand lags + time features.
 
@@ -60,51 +62,69 @@ def make_selected_lag_tabular(
             f"Got {len(demand_array)} and {len(time_features)}."
         )
 
-    num_zones = demand_array.shape[1]
+    # num_zones = demand_array.shape[1]
 
-    if len(zone_names) != num_zones:
-        raise ValueError(
-            f"zone_names length must match number of demand columns. "
-            f"Got {len(zone_names)} zone names but demand_array has {num_zones} zones."
-        )
-
+    # if len(zone_names) != num_zones:
+    #     raise ValueError(
+    #         f"zone_names length must match number of demand columns. "
+    #         f"Got {len(zone_names)} zone names but demand_array has {num_zones} zones."
+    #     )
+    
     max_lag = max(lags)
 
-    feature_names = []
+    # feature_names = []
 
-    # Lag demand features
-    for lag in lags:
-        for zone_name in zone_names:
-            feature_names.append(f"lag_{lag}_zone_{zone_name}")
+    # for lag in lags:
+    #     for zone_name in zone_names:
+    #         feature_names.append(f"lag_{lag}_zone_{zone_name}")
 
-    # Time features (optional)
-    if use_time_features:
-        feature_names.extend(time_features.columns.tolist())
+    # if use_time_features:
+    #     feature_names.extend(time_features.columns.tolist())
 
     X_rows = []
     y_rows = []
 
     time_values = time_features.to_numpy(dtype="float32")
 
-    for t in range(max_lag, len(demand_array)):
+    for t in range(max_lag, len(demand_array) - horizon + 1):
         row = []
 
         for lag in lags:
             row.extend(demand_array[t - lag])
 
         if use_time_features:
-            row.extend(time_values[t])
+            row.extend(time_values[t + horizon - 1])
 
         X_rows.append(row)
-        y_rows.append(demand_array[t])
+        y_rows.append(demand_array[t + horizon - 1])
 
-    X_tab = np.array(X_rows, dtype="float32")
-    y_tab = np.array(y_rows, dtype="float32")
+    return (
+        np.array(X_rows, dtype="float32"),
+        np.array(y_rows, dtype="float32"),
+        # feature_names,
+    )
 
-    return X_tab, y_tab, feature_names
+def build_lag_feature_names(
+    lags: list[int],
+    zone_names: list[str] | list[int],
+    use_time_features: bool,
+    time_feature_columns: list[str] | None = None,
+) -> list[str]:
+    
+    feature_names = []
 
+    # Lag features
+    for lag in lags:
+        for zone_name in zone_names:
+            feature_names.append(f"lag_{lag}_zone_{zone_name}")
 
+    # Time features
+    if use_time_features:
+        if time_feature_columns is None:
+            raise ValueError("time_feature_columns must be provided if use_time_features=True")
+        feature_names.extend(time_feature_columns)
 
+    return feature_names
 
 def compute_feature_importance(model, feature_names):
     """
