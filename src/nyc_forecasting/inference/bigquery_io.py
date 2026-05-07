@@ -66,6 +66,23 @@ def load_latest_actuals_from_bigquery(
     return client.query(query, job_config=job_config).to_dataframe()
 
 
+def load_latest_timestamp_from_bigquery(
+    client: bigquery.Client,
+    table_id: str,
+) -> pd.Timestamp:
+    query = f"""
+    SELECT
+        MAX(hour) AS latest_hour
+    FROM `{actuals_table}`
+    """
+
+    result = client.query(query).to_dataframe()
+
+    if result.empty or pd.isna(result.loc[0, "latest_hour"]):
+        raise ValueError(f"No timestamps found in {actuals_table}")
+
+    return pd.Timestamp(result.loc[0, "latest_hour"])
+
 
 # MAY NOT WANT THIS OR NEED A DIFFERENT VERSION OF THIS
 

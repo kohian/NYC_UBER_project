@@ -16,7 +16,7 @@ class BigQueryConfig:
     dataset: str = "nyc_forecasting"
     demand_actuals_table: str = f"{project_id}.{dataset}.hourly_demand_actuals"    
     demand_predictions_table: str = f"{project_id}.{dataset}.hourly_demand_predictions"       
-    # database_buffer: int = 5 
+    database_buffer: int = 5 
 
 
 @dataclass(frozen=True)

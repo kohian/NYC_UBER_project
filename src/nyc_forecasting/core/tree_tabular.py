@@ -196,3 +196,39 @@ def compute_feature_importance(model, feature_names):
     )
 
     return fi_df, lag_importance, zone_importance, type_summary
+
+def make_selected_lag_inference_row(
+    demand_array: np.ndarray,
+    target_time_features: pd.DataFrame,
+    use_time_features: bool,
+    lags: list[int],
+) -> np.ndarray:
+    if len(lags) == 0:
+        raise ValueError("lags must contain at least one lag value.")
+
+    if min(lags) <= 0:
+        raise ValueError("All lags must be positive integers, e.g. [1, 2, 24].")
+
+    max_lag = max(lags)
+
+    if len(demand_array) < max_lag:
+        raise ValueError(
+            f"Not enough rows for inference. "
+            f"Need at least max_lag={max_lag}, got {len(demand_array)}."
+        )
+
+    row = []
+
+    for lag in lags:
+        row.extend(demand_array[-lag])
+
+    if use_time_features:
+        if len(target_time_features) != 1:
+            raise ValueError(
+                f"target_time_features must contain exactly 1 row. "
+                f"Got {len(target_time_features)}."
+            )
+
+        row.extend(target_time_features.iloc[0].to_numpy(dtype="float32"))
+
+    return np.array(row, dtype="float32").reshape(1, -1)
