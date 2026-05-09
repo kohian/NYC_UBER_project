@@ -257,54 +257,6 @@ src/nyc_forecasting/
     run_preprocessing.py
 ```
 
-## Core Modules
-
-### `core/data.py`
-
-Handles:
-
-- monthly file path generation
-- parquet reading and writing
-- raw trip processing
-- hourly aggregation
-- full hour-zone panel creation
-- train/test splitting
-
-### `core/features.py`
-
-Handles:
-
-- time feature creation
-- demand scaling
-- wide dataframe transformation
-
-### `core/tree_tabular.py`
-
-Handles:
-
-- selected-lag tabular feature construction
-- single-row inference feature construction
-- lag feature name generation
-- XGBoost feature importance summaries
-
-### `core/artifacts.py`
-
-Handles:
-
-- saving and loading joblib objects from GCS
-- saving and loading JSON from GCS
-- saving model configs
-- saving metrics and feature importance outputs
-
-### `inference/bigquery_io.py`
-
-Handles:
-
-- dataframe uploads to BigQuery
-- loading actuals from BigQuery
-- loading latest actuals
-- checking whether predictions already exist
-
 ## Training Pipeline
 
 ### LSTM Training
@@ -560,17 +512,6 @@ This project demonstrates:
 - BigQuery-based inference output and monitoring
 - Practical tradeoffs between model complexity and operational clarity
 
-## Future Improvements
-
-- Add BigQuery `MERGE` pipeline for prediction error table
-- Add Looker Studio dashboard for monitoring
-- Add fleet allocation simulation
-- Compare baseline allocation vs forecast-driven allocation
-- Add Cloud Run deployment for inference
-- Add Cloud Scheduler for hourly execution
-- Add Docker and CI/CD workflow
-- Add Kubernetes deployment experiment
-- Add LLM/RAG project separately as a future portfolio extension
 
 ## Project Goal
 
