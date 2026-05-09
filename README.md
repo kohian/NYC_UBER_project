@@ -28,7 +28,9 @@ This project is designed to demonstrate practical ML engineering, data pipeline 
 - Builds full hourly zone panels for time-series modeling
 - Trains forecasting models for next-hour demand prediction
 - Supports LSTM, Transformer, and XGBoost-style tabular lag models
+- Tracks training runs and metrics with MLflow
 - Saves trained models, scalers, zone order, configs, and metrics to GCS
+- Uses Docker containerization for reproducible training and inference execution
 - Loads actual demand data into BigQuery
 - Runs inference using saved model artifacts
 - Writes predictions back to BigQuery
@@ -49,6 +51,7 @@ Training
     → feature engineering
     → model training
     → evaluation
+    → MLflow experiment tracking
     → artifacts saved to GCS
 
 Inference
@@ -197,6 +200,26 @@ The project includes:
 
 The scaler is fit on training data only and reused during inference.
 
+## Experiment Tracking
+
+Training runs are tracked with MLflow.
+
+MLflow is used to log:
+
+- model type
+- selected lag features
+- model hyperparameters
+- number of targets
+- input feature size
+- overall MAE
+- overall RMSE
+- overall MAPE
+- run metadata such as run ID and artifact path
+
+The project uses MLflow to make training runs easier to compare and to connect model results with saved GCS artifacts.
+
+The saved artifacts remain in GCS, while MLflow provides experiment tracking and run-level metadata.
+
 ## Artifact Saving
 
 Each training run saves artifacts to GCS.
@@ -234,6 +257,55 @@ Important inference artifacts:
 
 The saved `zone_names.json` ensures that inference uses the exact same zone column order as training.
 
+## Containerization
+
+The project includes Docker-based containerization so the source code can run consistently across local and cloud environments.
+
+Containerization helps standardize:
+
+- Python dependencies
+- package installation
+- training entrypoints
+- inference entrypoints
+- environment setup
+
+This does not automatically mean training is performed in the cloud. The same container can be run locally or on a cloud service such as Cloud Run Jobs, Vertex AI, or GKE.
+
+A practical production setup would separate training and inference workloads.
+
+### Training container
+
+The training container is responsible for:
+
+- loading processed data
+- training models
+- evaluating model performance
+- logging MLflow metrics
+- saving model artifacts to GCS
+
+Example entrypoint:
+
+```bash
+python -m nyc_forecasting.training.train_xgboost
+```
+
+### Inference container
+
+The inference container is responsible for:
+
+- loading saved model artifacts
+- reading latest actuals from BigQuery
+- building inference features
+- writing predictions back to BigQuery
+
+Example entrypoint:
+
+```bash
+python -m nyc_forecasting.inference.xgboost_inference
+```
+
+Training and inference can share the same base image, but they should have separate commands or Docker targets because they serve different operational purposes.
+
 ## Project Structure
 
 ```text
@@ -264,6 +336,8 @@ src/nyc_forecasting/
         xgboost_inference.py
 
     run_preprocessing.py
+
+Dockerfile
 ```
 
 ## Training Pipeline
@@ -295,7 +369,8 @@ The XGBoost pipeline:
 5. Builds selected-lag tabular features
 6. Trains a multi-output XGBoost model
 7. Evaluates predictions on raw demand values
-8. Saves model, scaler, zone order, config, metrics, and feature importance to GCS
+8. Logs experiment metadata and metrics with MLflow
+9. Saves model, scaler, zone order, config, metrics, and feature importance to GCS
 
 ## BigQuery Pipeline
 
@@ -452,7 +527,7 @@ Controls:
 
 ## How to Run
 
-### 1. Install package
+### 1. Install package locally
 
 ```bash
 pip install -e .
@@ -491,6 +566,28 @@ python -m nyc_forecasting.inference.single_pipe
 python -m nyc_forecasting.inference.xgboost_inference
 ```
 
+### 7. Run with Docker
+
+Build the container image:
+
+```bash
+docker build -t nyc-forecasting .
+```
+
+Run training:
+
+```bash
+docker run --rm nyc-forecasting python -m nyc_forecasting.training.train_xgboost
+```
+
+Run inference:
+
+```bash
+docker run --rm nyc-forecasting python -m nyc_forecasting.inference.xgboost_inference
+```
+
+In a cloud environment, the same image can be used as the base for scheduled training or inference jobs.
+
 ## Current Status
 
 Implemented:
@@ -501,20 +598,14 @@ Implemented:
 - LSTM training pipeline
 - Transformer training pipeline
 - XGBoost selected-lag training pipeline
+- MLflow experiment tracking
 - GCS artifact saving
+- Docker containerization
 - BigQuery actuals loading
 - Batch XGBoost inference
 - Single-hour XGBoost inference
 - Prediction table output
 - Feature importance export
-
-Planned / in progress:
-
-- BigQuery prediction error table
-- Metrics views
-- Looker Studio dashboard
-- Fleet allocation simulation
-- Optional Streamlit visualization
 
 ## Key Lessons
 
