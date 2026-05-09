@@ -27,7 +27,7 @@ This project is designed to demonstrate practical ML engineering, data pipeline 
 - Processes raw NYC trip data into hourly demand per pickup zone
 - Builds full hourly zone panels for time-series modeling
 - Trains forecasting models for next-hour demand prediction
-- Supports LSTM and XGBoost-style tabular lag models
+- Supports LSTM, Transformer, and XGBoost-style tabular lag models
 - Saves trained models, scalers, zone order, configs, and metrics to GCS
 - Loads actual demand data into BigQuery
 - Runs inference using saved model artifacts
@@ -149,6 +149,12 @@ past input_len hours → next-hour demand for all zones
 
 This is useful for sequence modeling and temporal pattern learning.
 
+### Transformer
+
+The Transformer model is included as an additional sequence-modeling approach for demand forecasting.
+
+Like the LSTM, it is designed to use historical time windows, but it can model temporal relationships using attention instead of recurrent layers.
+
 ### XGBoost Selected-Lag Model
 
 The XGBoost model uses explicit lag features instead of flattened full sequences.
@@ -244,6 +250,11 @@ src/nyc_forecasting/
         config.py
         torch_seed.py
 
+    training/
+        train_lstm.py
+        train_xgboost.py
+        train_transformer.py
+
     inference/
         config.py
         bigquery_io.py
@@ -252,8 +263,6 @@ src/nyc_forecasting/
         xgboost_batch.py
         xgboost_inference.py
 
-    train_lstm.py
-    train_xgboost.py
     run_preprocessing.py
 ```
 
@@ -262,13 +271,19 @@ src/nyc_forecasting/
 ### LSTM Training
 
 ```bash
-python -m nyc_forecasting.train_lstm
+python -m nyc_forecasting.training.train_lstm
+```
+
+### Transformer Training
+
+```bash
+python -m nyc_forecasting.training.train_transformer
 ```
 
 ### XGBoost Training
 
 ```bash
-python -m nyc_forecasting.train_xgboost
+python -m nyc_forecasting.training.train_xgboost
 ```
 
 The XGBoost pipeline:
@@ -454,7 +469,7 @@ python -m nyc_forecasting.run_preprocessing
 ### 3. Train XGBoost model
 
 ```bash
-python -m nyc_forecasting.train_xgboost
+python -m nyc_forecasting.training.train_xgboost
 ```
 
 ### 4. Load actuals to BigQuery
@@ -484,6 +499,7 @@ Implemented:
 - Hourly demand aggregation
 - Full hour-zone panel creation
 - LSTM training pipeline
+- Transformer training pipeline
 - XGBoost selected-lag training pipeline
 - GCS artifact saving
 - BigQuery actuals loading
@@ -511,7 +527,6 @@ This project demonstrates:
 - Saved artifact management for reproducibility
 - BigQuery-based inference output and monitoring
 - Practical tradeoffs between model complexity and operational clarity
-
 
 ## Project Goal
 
