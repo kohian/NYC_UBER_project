@@ -5,7 +5,7 @@ from datetime import datetime
 from dataclasses import asdict
 from sklearn.multioutput import MultiOutputRegressor
 
-from nyc_forecasting.core.config import DataConfig, XGBoostConfig
+from nyc_forecasting.training.config import DataConfig, XGBoostConfig
 from nyc_forecasting.core.data import (
     load_monthly_files,
     select_files,

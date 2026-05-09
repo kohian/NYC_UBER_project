@@ -5,7 +5,7 @@ from datetime import datetime
 from dataclasses import asdict
 import mlflow
 
-from nyc_forecasting.core.config import DataConfig, LSTMConfig
+from nyc_forecasting.training.config import DataConfig, LSTMConfig
 from nyc_forecasting.core.torch_dataset import SequenceDataset
 from nyc_forecasting.core.data import (
     load_monthly_files,

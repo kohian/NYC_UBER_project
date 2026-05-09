@@ -1,4 +1,4 @@
-from nyc_forecasting.core.config import DataConfig
+from nyc_forecasting.training.config import DataConfig
 from nyc_forecasting.core.data import read_parquet, read_csv, write_parquet, get_borough_zone_ids, process_monthly_hourly_demand, generate_year_month_list, build_monthly_raw_path, build_processed_path
 
 def main() -> None:

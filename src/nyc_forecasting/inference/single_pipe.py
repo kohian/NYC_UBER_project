@@ -27,7 +27,8 @@ def main() -> None:
 
     latest_timestamp = load_latest_timestamp_from_bigquery(client = client, table_id = bigquery_config.demand_actuals_table)
     next_timestamp = latest_timestamp  + pd.Timedelta(hours=1)
-
+    next_timestamp = pd.Timestamp(next_timestamp).tz_localize(None)
+    
     # filter for next_timestamp
     df["hour"] = pd.to_datetime(df["hour"])
     df = df[df["hour"] == next_timestamp]
