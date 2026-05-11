@@ -27,8 +27,9 @@ from nyc_forecasting.core.artifacts import (
     save_config_to_gcs,
     save_results_to_gcs,
     save_joblib_object_to_gcs,
-    save_torch_state_dict_to_gcs,
 )
+
+from nyc_forecasting.core.torch_artifacts import save_torch_state_dict_to_gcs
 from nyc_forecasting.core.lstm_class import DemandLSTM
 from nyc_forecasting.core.torch_functions import evaluate, fit_torch_model, predict
 from nyc_forecasting.core.torch_seed import set_seed
