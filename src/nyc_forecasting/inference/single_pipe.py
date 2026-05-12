@@ -4,7 +4,7 @@ from google.cloud import bigquery
 from nyc_forecasting.inference.config import PipeConfig, BigQueryConfig, XGBoostInferConfig
 from nyc_forecasting.inference.bigquery_io import load_dataframe_to_bigquery, load_latest_timestamp_from_bigquery
 
-from nyc_forecasting.bigquery_sql.run_bigquery_sql import run_prediction_error_merge
+from nyc_forecasting.bigquery_sql.run_bigquery_sql import run_merge_prediction_error
 
 from nyc_forecasting.core.data import (
     load_monthly_files,
@@ -55,7 +55,7 @@ def main() -> None:
         write_disposition = "WRITE_APPEND", # i want to append! 
     )
 
-    run_prediction_error_merge(
+    run_merge_prediction_error(
         client = client,
         target_timestamp= next_timestamp,
         model_version= model_config.model_version

@@ -2,14 +2,14 @@ from pathlib import Path
 import pandas as pd
 from google.cloud import bigquery
 
-PREDICTION_ERROR_MERGE_SQL_PATH =  Path(__file__).resolve().parent / "prediction_error_merge.sql"
+MERGE_PREDICTION_ERROR_SQL_PATH =  Path(__file__).resolve().parent / "merge_prediction_error.sql"
 
-def run_prediction_error_merge(
+def run_merge_prediction_error(
     client: bigquery.Client,
     target_timestamp: pd.Timestamp,
     model_version: str,
 ) -> None:
-    query = PREDICTION_ERROR_MERGE_SQL_PATH.read_text()
+    query = MERGE_PREDICTION_ERROR_SQL_PATH.read_text()
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
