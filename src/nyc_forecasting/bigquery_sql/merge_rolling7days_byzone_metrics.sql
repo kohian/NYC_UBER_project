@@ -2,11 +2,10 @@ MERGE `nyc-uber-494107.nyc_forecasting.prediction_metrics_rolling_7d_byzone` t
 
 USING (
 
-  WITH latest_window AS (
+  WITH current_window AS (
     SELECT
-      TIMESTAMP_SUB(MAX(target_timestamp), INTERVAL 167 HOUR) AS window_start_timestamp,
-      MAX(target_timestamp) AS window_end_timestamp
-    FROM `nyc-uber-494107.nyc_forecasting.hourly_prediction_errors`
+      TIMESTAMP_SUB(@target_timestamp, INTERVAL 167 HOUR) AS window_start_timestamp,
+      @target_timestamp AS window_end_timestamp
   ),
 
   windowed AS (
@@ -15,8 +14,9 @@ USING (
       w.window_start_timestamp,
       w.window_end_timestamp
     FROM `nyc-uber-494107.nyc_forecasting.hourly_prediction_errors` e
-    CROSS JOIN latest_window w
-    WHERE e.target_timestamp BETWEEN w.window_start_timestamp AND w.window_end_timestamp
+    CROSS JOIN current_window w
+    WHERE e.model_version = @model_version
+      AND e.target_timestamp BETWEEN w.window_start_timestamp AND w.window_end_timestamp
   )
 
   SELECT

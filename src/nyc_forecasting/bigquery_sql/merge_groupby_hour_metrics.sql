@@ -9,6 +9,8 @@ USING (
     SQRT(AVG(squared_error)) AS rmse,
     AVG(SAFE_DIVIDE(absolute_error, NULLIF(actual_demand, 0))) AS mape_excluding_zero_actuals
   FROM `nyc-uber-494107.nyc_forecasting.hourly_prediction_errors` 
+  WHERE target_timestamp = @target_timestamp
+    AND model_version = @model_version
   GROUP BY model_version, target_timestamp
   -- ORDER BY target_timestamp
 ) src
