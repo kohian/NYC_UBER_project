@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW `nyc-uber-494107.nyc_forecasting.vw_prediction_metrics` AS
+CREATE OR REPLACE VIEW `nyc-uber-494107.nyc_forecasting.vw_overall_metrics` AS
 
 SELECT
   model_version,
