@@ -13,12 +13,25 @@ TRUNCATE TABLE `nyc-uber-494107.nyc_forecasting.prediction_metrics_rolling_7d`;
 
 INSERT INTO `nyc-uber-494107.nyc_forecasting.prediction_metrics_rolling_7d`
 
-WITH windows AS (
+WITH max_data AS (
+  SELECT
+    MAX(target_timestamp) AS max_target_timestamp
+  FROM `nyc-uber-494107.nyc_forecasting.hourly_prediction_errors`
+),
+
+windows AS (
   SELECT DISTINCT
     target_timestamp AS window_start_timestamp,
     TIMESTAMP_ADD(target_timestamp, INTERVAL 167 HOUR) AS window_end_timestamp
   FROM `nyc-uber-494107.nyc_forecasting.hourly_prediction_errors`
   WHERE EXTRACT(HOUR FROM target_timestamp) = 0
+),
+
+filtered_windows AS(
+  SELECT w.*
+  FROM windows w
+  CROSS JOIN max_data m
+  WHERE window_end_timestamp <= m.max_target_timestamp
 )
 
 SELECT
