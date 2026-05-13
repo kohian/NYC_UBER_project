@@ -52,7 +52,7 @@ SELECT
       )
     ) AS mape_excluding_zero_actuals
 
-FROM windows w
+FROM filtered_windows w
 
 JOIN `nyc-uber-494107.nyc_forecasting.hourly_prediction_errors` e
     ON e.target_timestamp
