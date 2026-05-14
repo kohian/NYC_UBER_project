@@ -56,7 +56,7 @@ def main() -> None:
     )
 
     hourly_sql_filenames = ["merge_prediction_error.sql","merge_groupby_hour_metrics.sql"]
-    daily_sql_filenames = ["merge_rolling7days_metrics.sql","merge_rolling7days_byzone_metrics.sql"]    
+    daily_sql_filenames = ["merge_rolling7days_metrics.sql","merge_rolling7days_byzone_metrics.sql","merge_groupby_day_metrics.sql"]    
 
     #RUN HOURLY SQL
     for filename in hourly_sql_filenames:
