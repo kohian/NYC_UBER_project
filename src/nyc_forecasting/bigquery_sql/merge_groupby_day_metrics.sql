@@ -3,7 +3,7 @@ MERGE `nyc-uber-494107.nyc_forecasting.prediction_metrics_groupby_day` e
 USING (
   SELECT
     model_version,
-    DATE(target_timestamp) as date,
+    DATE(target_timestamp) as target_date,
     COUNT(*) AS num_predictions,
     AVG(absolute_error) AS mae,
     SQRT(AVG(squared_error)) AS rmse,
@@ -11,11 +11,11 @@ USING (
   FROM `nyc-uber-494107.nyc_forecasting.hourly_prediction_errors` 
   WHERE DATE(target_timestamp) = DATE(@target_timestamp)
     AND model_version = @model_version
-  GROUP BY model_version, date
+  GROUP BY model_version, target_date
   -- ORDER BY target_timestamp
 ) src
 
-ON e.date = src.date
+ON e.target_date = src.target_date
 AND e.model_version = src.model_version
 
 WHEN MATCHED THEN UPDATE SET
@@ -27,7 +27,7 @@ WHEN MATCHED THEN UPDATE SET
 WHEN NOT MATCHED THEN
   INSERT (
     model_version,
-    date,
+    target_date,
     num_predictions,
     mae,
     rmse,
@@ -35,7 +35,7 @@ WHEN NOT MATCHED THEN
   )
   VALUES (
     src.model_version,
-    src.date,
+    src.target_date,
     src.num_predictions,
     src.mae,
     src.rmse,
